@@ -1,26 +1,30 @@
 package main
 
-
-import ( 
-
+import (
 	"fmt"
-	"net/http"
 	"html"
 	"log"
-	
+	"net/http"
 )
 
-func main () {
+func main() {
 
 	http.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf (w, "Ola, %q" , html.EscapeString(r.URL.Path))
+		fmt.Fprintf(w, "Ola, %q", html.EscapeString(r.URL.Path))
 	})
-	
-	log.Fatal(http.ListenAndServe(":8080", nil)) 
-	
-	
 
-	
-	
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != http.MethodGet {
+
+			http.Error(w, "metodo nao permitido", http.StatusMethodNotAllowed)
+
+			return
+
+		}
+		fmt.Fprintln(w, "ok")
+	})
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
+
 }
-
