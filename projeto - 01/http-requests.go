@@ -7,7 +7,16 @@ import (
 	"net/http"
 )
 
-func WandR(w http.ResponseWriter, r *http.Request) {
+type Evento struct {
+	
+	ID          string `json:"id"`
+	Type        string `json:"type"`
+	Channel     string `json:"channel"`
+	Destination string `json:"destination"`
+	Payload     json.RawMessage `json:"payload"`
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodGet {
 
@@ -19,7 +28,7 @@ func WandR(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "ok")
 }
 
-func Post(w http.ResponseWriter, r *http.Request) {
+func notificationsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
 
@@ -28,15 +37,30 @@ func Post(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-	fmt.Fprintln(w, "ok")
+
+	var evento Evento
+
+	if err := json.NewDecoder(r.Body).Decode(&evento); err != nil {
+
+		http.Error(w, "formato inválido", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("%+v", evento)
+
+	w.WriteHeader(http.StatusAccepted)
+
+	fmt.Fprintln(w, "202")
+
+	return
 
 }
 
 func main() {
 
-	http.HandleFunc("/health", WandR)
+	http.HandleFunc("/health", healthHandler)
 
-	http.HandleFunc("/notification,", Post)
+	http.HandleFunc("/notifications", notificationsHandler)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 

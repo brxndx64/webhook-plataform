@@ -1,0 +1,6 @@
+{
+  "id": "evt_001",
+  "type": "payment.approved",
+  "channel": "webhook",
+  "destination": "https://exemplo.com/hooks",
+  "payload": { "valor": 1500, "moeda": "BRL" }
