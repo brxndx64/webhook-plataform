@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,9 +19,24 @@ func WandR(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "ok")
 }
 
+func Post(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+
+		http.Error(w, "metodo nao permitido", http.StatusMethodNotAllowed)
+
+		return
+
+	}
+	fmt.Fprintln(w, "ok")
+
+}
+
 func main() {
 
 	http.HandleFunc("/health", WandR)
+
+	http.HandleFunc("/notification,", Post)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
