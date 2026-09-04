@@ -74,6 +74,8 @@ func notificationsHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%+v", evento)
 
+	w.Header().Set("Content-Type", "application/json")
+
 	w.WriteHeader(http.StatusAccepted)
 
 	fmt.Fprintln(w, "202")
