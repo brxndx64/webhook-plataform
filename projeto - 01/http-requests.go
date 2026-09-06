@@ -16,6 +16,12 @@ type Evento struct {
 	Payload     json.RawMessage `json:"payload"`
 }
 
+type Resposta struct {
+	ID string `json:"id"`
+
+	Status string `json:"status"`
+}
+
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodGet {
@@ -41,6 +47,8 @@ func notificationsHandler(w http.ResponseWriter, r *http.Request) {
 	var evento Evento
 
 	if err := json.NewDecoder(r.Body).Decode(&evento); err != nil {
+
+		log.Printf("erro ao decodificar JSON: %v", err)
 
 		http.Error(w, "formato invalido", http.StatusBadRequest)
 		return
@@ -72,13 +80,18 @@ func notificationsHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	response := Resposta{
+		ID:     evento.ID,
+		Status: "accepted",
+	}
+
 	log.Printf("%+v", evento)
 
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(http.StatusAccepted)
 
-	fmt.Fprintln(w, "202")
+	json.NewEncoder(w).Encode(response)
 
 	return
 
