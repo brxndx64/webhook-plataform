@@ -1,0 +1,89 @@
+{
+    "label":  "go",
+    "impl":  "go",
+    "scenario":  "taxa-1200",
+    "duration_seconds":  20.000955,
+    "concurrency":  64,
+    "target_rate":  1200,
+    "sent":  24000,
+    "status_counts":  {
+                          "202":  24000
+                      },
+    "transport_errors":  0,
+    "attempted_rps":  1199.9427027359443,
+    "accepted_rps":  1199.9427027359443,
+    "client_latency_ms":  {
+                              "count":  24000,
+                              "mean_ms":  0.9258149166666667,
+                              "p50_ms":  0.43180435599210787,
+                              "p95_ms":  0.8196935864627755,
+                              "p99_ms":  2.480064507066166,
+                              "max_ms":  142.765
+                          },
+    "drain_seconds":  0.5032856,
+    "drain_complete":  true,
+    "delivered_total":  23528,
+    "delivery_rps":  1147.4699531178928,
+    "server":  {
+                   "impl":  "go",
+                   "uptime_seconds":  20.5043226,
+                   "received":  24000,
+                   "accepted":  23528,
+                   "duplicated":  472,
+                   "invalid":  0,
+                   "rejected_full":  0,
+                   "method_not_allowed":  0,
+                   "delivered":  23528,
+                   "retries":  0,
+                   "dead_lettered":  0,
+                   "dropped":  0,
+                   "in_flight":  0,
+                   "queue_len":  0,
+                   "queue_cap":  20000,
+                   "dedup_size":  23528,
+                   "workers":  256,
+                   "api_latency_ms":  {
+                                          "count":  24000,
+                                          "mean_ms":  0.0030927083333333336,
+                                          "p50_ms":  0.05,
+                                          "p95_ms":  0.05,
+                                          "p99_ms":  0.05,
+                                          "max_ms":  2.746
+                                      },
+                   "delivery_latency_ms":  {
+                                               "count":  23528,
+                                               "mean_ms":  6.423494177150629,
+                                               "p50_ms":  6.678250211573959,
+                                               "p95_ms":  7.503681937724503,
+                                               "p99_ms":  7.953902853987974,
+                                               "max_ms":  69.177
+                                           },
+                   "runtime":  {
+                                   "goroutines":  842,
+                                   "heap_alloc_bytes":  10382112,
+                                   "heap_objects":  54878,
+                                   "total_alloc_bytes":  1287684496,
+                                   "mallocs_total":  13288574,
+                                   "num_gc":  137,
+                                   "gc_pause_total_ms":  55.2795,
+                                   "num_cpu":  8,
+                                   "gomaxprocs":  8,
+                                   "version":  "go1.27.0"
+                               }
+               },
+    "env":  {
+                "os":  "windows",
+                "arch":  "amd64",
+                "num_cpu":  8,
+                "host":  "ADRIANA1968",
+                "go_version":  "go1.27.0",
+                "when":  "2026-09-24T10:24:36.8425416-03:00"
+            },
+    "process":  {
+                    "name":  "go",
+                    "cpu_seconds":  21.266,
+                    "cpu_percent_of_one_core":  80.5,
+                    "peak_rss_bytes":  100573184,
+                    "avg_rss_bytes":  84267131
+                }
+}

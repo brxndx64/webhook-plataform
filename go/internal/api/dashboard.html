@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webhook Platform</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --panel-2:#1c2128; --line:#30363d;
+  --txt:#e6edf3; --dim:#8b949e; --accent:#2f81f7; --ok:#3fb950;
+  --warn:#d29922; --bad:#f85149; --purple:#a371f7;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+:root:not([data-theme="dark"]){
+  @media (prefers-color-scheme: light){
+    --bg:#f6f8fa; --panel:#fff; --panel-2:#f6f8fa; --line:#d0d7de;
+    --txt:#1f2328; --dim:#656d76;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --panel:#fff; --panel-2:#f6f8fa; --line:#d0d7de;
+  --txt:#1f2328; --dim:#656d76;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--txt);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:16px;
+}
+.wrap{max-width:1280px;margin:0 auto}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:18px;margin:0;font-weight:600}
+.badge{
+  font:11px/1 var(--mono); padding:5px 9px; border-radius:999px;
+  border:1px solid var(--line); color:var(--dim); background:var(--panel);
+}
+.badge.live{color:var(--ok);border-color:var(--ok)}
+.badge.dead{color:var(--bad);border-color:var(--bad)}
+.spacer{flex:1}
+button{
+  font:12px/1 inherit; padding:7px 12px; border-radius:6px; cursor:pointer;
+  border:1px solid var(--line); background:var(--panel); color:var(--txt);
+}
+button:hover{background:var(--panel-2)}
+.grid{display:grid;gap:12px;margin-bottom:12px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.charts{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.tables{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:10px; padding:14px;
+}
+.k-label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.k-val{font:600 26px/1.2 var(--mono);margin-top:6px;word-break:break-all}
+.k-sub{font-size:11px;color:var(--dim);margin-top:2px}
+.c-ok{color:var(--ok)} .c-warn{color:var(--warn)} .c-bad{color:var(--bad)}
+.c-accent{color:var(--accent)} .c-purple{color:var(--purple)}
+h2{font-size:12px;color:var(--dim);margin:0 0 10px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+canvas{width:100%;height:150px;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin-top:8px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle}
+table{width:100%;border-collapse:collapse;font:12px/1.6 var(--mono)}
+td{padding:4px 0;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+td:last-child{text-align:right;font-weight:600}
+.bar{height:6px;border-radius:3px;background:var(--panel-2);overflow:hidden;margin-top:8px}
+.bar>div{height:100%;background:var(--accent);transition:width .3s}
+footer{color:var(--dim);font-size:11px;margin-top:20px;text-align:center}
+@media(max-width:600px){body{padding:12px 16px}.k-val{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Webhook Platform</h1>
+  <span class="badge" id="impl">-</span>
+  <span class="badge" id="uptime">-</span>
+  <span class="spacer"></span>
+  <span class="badge" id="conn">conectando...</span>
+  <button id="theme">tema</button>
+  <button id="reset">zerar metricas</button>
+</header>
+
+<div class="grid kpis">
+  <div class="card"><div class="k-label">Entrada</div><div class="k-val c-accent" id="rateIn">0</div><div class="k-sub">eventos aceitos/s</div></div>
+  <div class="card"><div class="k-label">Entrega</div><div class="k-val c-ok" id="rateOut">0</div><div class="k-sub">webhooks entregues/s</div></div>
+  <div class="card"><div class="k-label">API p99</div><div class="k-val" id="apiP99">0</div><div class="k-sub">ms &middot; p50 <span id="apiP50">0</span></div></div>
+  <div class="card"><div class="k-label">Entrega p99</div><div class="k-val c-purple" id="delP99">0</div><div class="k-sub">ms &middot; p50 <span id="delP50">0</span></div></div>
+  <div class="card"><div class="k-label">Fila</div><div class="k-val" id="queue">0</div><div class="k-sub"><span id="queuePct">0</span>% da capacidade</div><div class="bar"><div id="queueBar" style="width:0"></div></div></div>
+  <div class="card"><div class="k-label">Memoria</div><div class="k-val" id="heap">0</div><div class="k-sub">heap &middot; <span id="threads">0</span> goroutines</div></div>
+</div>
+
+<div class="grid charts">
+  <div class="card"><h2>Vazao (eventos/s)</h2><canvas id="cThr"></canvas>
+    <div class="legend"><span><i style="background:#2f81f7"></i>aceitos</span><span><i style="background:#3fb950"></i>entregues</span><span><i style="background:#f85149"></i>recusados</span></div></div>
+  <div class="card"><h2>Latencia (ms)</h2><canvas id="cLat"></canvas>
+    <div class="legend"><span><i style="background:#2f81f7"></i>API p99</span><span><i style="background:#a371f7"></i>entrega p99</span></div></div>
+  <div class="card"><h2>Profundidade da fila</h2><canvas id="cQ"></canvas>
+    <div class="legend"><span><i style="background:#d29922"></i>na fila</span><span><i style="background:#3fb950"></i>em voo</span></div></div>
+  <div class="card"><h2>Memoria (MB)</h2><canvas id="cMem"></canvas>
+    <div class="legend"><span><i style="background:#a371f7"></i>heap</span></div></div>
+</div>
+
+<div class="grid tables">
+  <div class="card"><h2>Entrada</h2><table id="tIn"></table></div>
+  <div class="card"><h2>Saida</h2><table id="tOut"></table></div>
+  <div class="card"><h2>Runtime</h2><table id="tRun"></table></div>
+</div>
+
+<footer>atualiza a cada segundo &middot; <a href="/stats" style="color:var(--accent)">/stats</a> &middot; <a href="/metrics" style="color:var(--accent)">/metrics</a> &middot; <a href="/dlq" style="color:var(--accent)">/dlq</a></footer>
+</div>
+
+<script>
+const N = 120;
+const series = {thrIn:[],thrOut:[],thrRej:[],apiP99:[],delP99:[],q:[],inflight:[],heap:[]};
+let prev = null, prevT = 0;
+
+const $ = id => document.getElementById(id);
+const fmt = n => n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'k' : String(Math.round(n));
+const mb = b => (b/1048576).toFixed(1);
+const push = (a,v) => { a.push(v); if (a.length > N) a.shift(); };
+
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function draw(id, sets, opts){
+  const c = $(id), dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth, h = c.clientHeight;
+  c.width = w*dpr; c.height = h*dpr;
+  const x = c.getContext('2d'); x.scale(dpr,dpr); x.clearRect(0,0,w,h);
+
+  let max = 0;
+  for (const s of sets) for (const v of s.data) if (v > max) max = v;
+  if (max <= 0) max = 1;
+  max *= 1.15;
+
+  x.strokeStyle = css('--line'); x.lineWidth = 1;
+  x.fillStyle = css('--dim'); x.font = '10px ui-monospace,monospace';
+  for (let i = 0; i <= 3; i++){
+    const y = 12 + (h-24) * i/3;
+    x.beginPath(); x.moveTo(34,y); x.lineTo(w-4,y); x.stroke();
+    const val = max * (1 - i/3);
+    x.fillText(opts && opts.fixed ? val.toFixed(1) : fmt(val), 2, y+3);
+  }
+
+  const px = i => 34 + (w-38) * (N<=1?0:i/(N-1));
+  const py = v => 12 + (h-24) * (1 - Math.min(v,max)/max);
+
+  for (const s of sets){
+    if (s.data.length < 2) continue;
+    const off = N - s.data.length;
+    x.strokeStyle = s.color; x.lineWidth = 2;
+    x.lineJoin = 'round'; x.beginPath();
+    s.data.forEach((v,i) => i ? x.lineTo(px(i+off),py(v)) : x.moveTo(px(i+off),py(v)));
+    x.stroke();
+    const g = x.createLinearGradient(0,12,0,h-12);
+    g.addColorStop(0, s.color+'33'); g.addColorStop(1, s.color+'00');
+    x.lineTo(px(s.data.length-1+off), h-12); x.lineTo(px(off), h-12); x.closePath();
+    x.fillStyle = g; x.fill();
+  }
+}
+
+function rows(el, pairs){
+  el.innerHTML = pairs.map(p => `<tr><td>${p[0]}</td><td>${p[1]}</td></tr>`).join('');
+}
+
+function render(s){
+  const now = performance.now();
+  let rIn = 0, rOut = 0, rRej = 0;
+  if (prev){
+    const dt = (now - prevT)/1000;
+    if (dt > 0.05){
+      rIn  = Math.max(0,(s.accepted - prev.accepted)/dt);
+      rOut = Math.max(0,(s.delivered - prev.delivered)/dt);
+      rRej = Math.max(0,((s.rejected_full+s.invalid) - (prev.rejected_full+prev.invalid))/dt);
+    }
+  }
+  prev = s; prevT = now;
+
+  push(series.thrIn,rIn); push(series.thrOut,rOut); push(series.thrRej,rRej);
+  push(series.apiP99, s.api_latency_ms.p99_ms);
+  push(series.delP99, s.delivery_latency_ms.p99_ms);
+  push(series.q, s.queue_len); push(series.inflight, s.in_flight);
+  push(series.heap, s.runtime.heap_alloc_bytes/1048576);
+
+  $('impl').textContent = s.impl + ' · ' + s.runtime.version;
+  $('uptime').textContent = 'up ' + Math.floor(s.uptime_seconds) + 's';
+  $('rateIn').textContent = fmt(rIn);
+  $('rateOut').textContent = fmt(rOut);
+  $('apiP99').textContent = s.api_latency_ms.p99_ms.toFixed(2);
+  $('apiP50').textContent = s.api_latency_ms.p50_ms.toFixed(2);
+  $('delP99').textContent = s.delivery_latency_ms.p99_ms.toFixed(1);
+  $('delP50').textContent = s.delivery_latency_ms.p50_ms.toFixed(1);
+  $('queue').textContent = fmt(s.queue_len);
+  const pct = s.queue_cap ? Math.round(100*s.queue_len/s.queue_cap) : 0;
+  $('queuePct').textContent = pct;
+  $('queueBar').style.width = pct + '%';
+  $('queueBar').style.background = pct > 80 ? css('--bad') : pct > 50 ? css('--warn') : css('--accent');
+  $('heap').textContent = mb(s.runtime.heap_alloc_bytes) + ' MB';
+  $('threads').textContent = s.runtime.goroutines;
+
+  draw('cThr',[{data:series.thrIn,color:'#2f81f7'},{data:series.thrOut,color:'#3fb950'},{data:series.thrRej,color:'#f85149'}]);
+  draw('cLat',[{data:series.apiP99,color:'#2f81f7'},{data:series.delP99,color:'#a371f7'}],{fixed:true});
+  draw('cQ',[{data:series.q,color:'#d29922'},{data:series.inflight,color:'#3fb950'}]);
+  draw('cMem',[{data:series.heap,color:'#a371f7'}],{fixed:true});
+
+  rows($('tIn'),[
+    ['recebidos', fmt(s.received)], ['aceitos (202)', fmt(s.accepted)],
+    ['duplicados', fmt(s.duplicated)], ['invalidos (400)', fmt(s.invalid)],
+    ['fila cheia (503)', fmt(s.rejected_full)], ['metodo invalido (405)', fmt(s.method_not_allowed)],
+    ['API p50 / p95 / p99', `${s.api_latency_ms.p50_ms.toFixed(2)} / ${s.api_latency_ms.p95_ms.toFixed(2)} / ${s.api_latency_ms.p99_ms.toFixed(2)} ms`],
+  ]);
+  rows($('tOut'),[
+    ['entregues', fmt(s.delivered)], ['retentativas', fmt(s.retries)],
+    ['dead-letter', fmt(s.dead_lettered)], ['descartados', fmt(s.dropped)],
+    ['em voo', fmt(s.in_flight)], ['workers', s.workers],
+    ['fila', `${s.queue_len} / ${s.queue_cap}`],
+    ['entrega p50 / p95 / p99', `${s.delivery_latency_ms.p50_ms.toFixed(1)} / ${s.delivery_latency_ms.p95_ms.toFixed(1)} / ${s.delivery_latency_ms.p99_ms.toFixed(1)} ms`],
+  ]);
+  rows($('tRun'),[
+    ['versao', s.runtime.version], ['CPUs', s.runtime.num_cpu],
+    ['paralelismo', s.runtime.gomaxprocs], ['goroutines/tasks', fmt(s.runtime.goroutines)],
+    ['heap', mb(s.runtime.heap_alloc_bytes)+' MB'],
+    ['alocado total', mb(s.runtime.total_alloc_bytes)+' MB'],
+    ['ciclos de GC', fmt(s.runtime.num_gc)],
+    ['pausa GC total', s.runtime.gc_pause_total_ms.toFixed(1)+' ms'],
+    ['dedup em memoria', fmt(s.dedup_size)],
+  ]);
+}
+
+async function tick(){
+  try{
+    const r = await fetch('/stats', {cache:'no-store'});
+    if (!r.ok) throw new Error(r.status);
+    render(await r.json());
+    $('conn').textContent = 'ao vivo'; $('conn').className = 'badge live';
+  }catch(e){
+    $('conn').textContent = 'sem conexao'; $('conn').className = 'badge dead';
+  }
+}
+
+$('reset').onclick = async () => {
+  await fetch('/admin/reset', {method:'POST'});
+  for (const k in series) series[k].length = 0;
+  prev = null; tick();
+};
+$('theme').onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('theme', next); }catch(e){}
+};
+try{
+  const t = localStorage.getItem('theme');
+  if (t) document.documentElement.setAttribute('data-theme', t);
+}catch(e){}
+
+tick(); setInterval(tick, 1000);
+window.addEventListener('resize', () => prev && render(prev));
+</script>
+</body>
+</html>

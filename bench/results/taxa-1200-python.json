@@ -1,0 +1,89 @@
+{
+    "label":  "python",
+    "impl":  "python",
+    "scenario":  "taxa-1200",
+    "duration_seconds":  20.0039582,
+    "concurrency":  64,
+    "target_rate":  1200,
+    "sent":  23999,
+    "status_counts":  {
+                          "202":  23999
+                      },
+    "transport_errors":  0,
+    "attempted_rps":  1199.7125648862834,
+    "accepted_rps":  1199.7125648862834,
+    "client_latency_ms":  {
+                              "count":  23999,
+                              "mean_ms":  7.846487270302929,
+                              "p50_ms":  4.990377051043117,
+                              "p95_ms":  27.039798624693432,
+                              "p99_ms":  43.09733097366934,
+                              "max_ms":  172.071
+                          },
+    "drain_seconds":  0.5048602,
+    "drain_complete":  true,
+    "delivered_total":  23556,
+    "delivery_rps":  1148.5790912264356,
+    "server":  {
+                   "impl":  "python",
+                   "uptime_seconds":  20.509291999973357,
+                   "received":  23999,
+                   "accepted":  23556,
+                   "duplicated":  443,
+                   "invalid":  0,
+                   "rejected_full":  0,
+                   "method_not_allowed":  0,
+                   "delivered":  23556,
+                   "retries":  0,
+                   "dead_lettered":  0,
+                   "dropped":  0,
+                   "in_flight":  0,
+                   "queue_len":  0,
+                   "queue_cap":  20000,
+                   "dedup_size":  23556,
+                   "workers":  256,
+                   "api_latency_ms":  {
+                                          "count":  23999,
+                                          "mean_ms":  0.12348075371894236,
+                                          "p50_ms":  0.10060982359177757,
+                                          "p95_ms":  0.2411172970351892,
+                                          "p99_ms":  0.2871745586456629,
+                                          "max_ms":  12.31530006043613
+                                      },
+                   "delivery_latency_ms":  {
+                                               "count":  23556,
+                                               "mean_ms":  13.342998585425093,
+                                               "p50_ms":  10.644116240952345,
+                                               "p95_ms":  30.38191773470553,
+                                               "p99_ms":  48.424161082014855,
+                                               "max_ms":  106.766999932006
+                                           },
+                   "runtime":  {
+                                   "goroutines":  326,
+                                   "heap_alloc_bytes":  63823872,
+                                   "heap_objects":  0,
+                                   "total_alloc_bytes":  0,
+                                   "mallocs_total":  0,
+                                   "num_gc":  6,
+                                   "gc_pause_total_ms":  0,
+                                   "num_cpu":  8,
+                                   "gomaxprocs":  1,
+                                   "version":  "python 3.14.4"
+                               }
+               },
+    "env":  {
+                "os":  "windows",
+                "arch":  "amd64",
+                "num_cpu":  8,
+                "host":  "ADRIANA1968",
+                "go_version":  "go1.27.0",
+                "when":  "2026-09-24T10:25:06.6191154-03:00"
+            },
+    "process":  {
+                    "name":  "python",
+                    "cpu_seconds":  23.594,
+                    "cpu_percent_of_one_core":  90,
+                    "peak_rss_bytes":  63823872,
+                    "avg_rss_bytes":  58685399
+                }
+}

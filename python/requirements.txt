@@ -1,0 +1,5 @@
+# Cliente e servidor HTTP assincronos.
+# A unica dependencia externa: comparar Go concorrente com Python
+# bloqueante nao seria comparacao, e a stdlib do Python nao traz um
+# servidor/cliente HTTP assincrono de producao.
+aiohttp>=3.9,<4

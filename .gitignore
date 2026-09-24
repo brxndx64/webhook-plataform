@@ -1,0 +1,21 @@
+# Binarios compilados
+bench/bin/
+*.exe
+
+# Logs das execucoes de benchmark (os .json de resultado sao versionados
+# de proposito: sao a evidencia dos numeros do README)
+bench/results/*.log
+
+# Ambiente Python
+python/.venv/
+__pycache__/
+*.py[cod]
+
+# Perfis do pprof
+*.prof
+*.pprof
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini

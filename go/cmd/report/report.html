@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Go vs Python — Webhooks</title>
+<style>
+:root{
+  --bg:#0d1117;--panel:#161b22;--panel-2:#1c2128;--line:#30363d;
+  --txt:#e6edf3;--dim:#8b949e;--go:#00add8;--py:#ffd43b;
+  --ok:#3fb950;--bad:#f85149;--accent:#2f81f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+:root:not([data-theme="dark"]){@media(prefers-color-scheme:light){
+  --bg:#f6f8fa;--panel:#fff;--panel-2:#f6f8fa;--line:#d0d7de;--txt:#1f2328;--dim:#656d76;}}
+:root[data-theme="light"]{--bg:#f6f8fa;--panel:#fff;--panel-2:#f6f8fa;--line:#d0d7de;--txt:#1f2328;--dim:#656d76}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);padding:16px;
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1100px;margin:0 auto}
+header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+h1{font-size:24px;margin:0;font-weight:650;letter-spacing:-.3px}
+.sub{color:var(--dim);font-size:13px;margin-bottom:24px}
+h2{font-size:18px;margin:32px 0 4px;font-weight:600}
+h3{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;margin:20px 0 10px;font-weight:600}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:12px}
+.env{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;font-size:12px}
+.env div span{display:block;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.env div b{font:600 14px/1.4 var(--mono)}
+.metric{margin-bottom:16px}
+.metric .name{font-size:13px;font-weight:600;margin-bottom:2px}
+.metric .hint{font-size:11px;color:var(--dim);margin-bottom:8px}
+.row{display:grid;grid-template-columns:78px 1fr 110px;align-items:center;gap:10px;margin-bottom:5px}
+.row .lbl{font:12px/1 var(--mono);color:var(--dim);text-align:right;overflow:hidden;text-overflow:ellipsis}
+.track{background:var(--panel-2);border-radius:4px;height:22px;overflow:hidden}
+.fill{height:100%;border-radius:4px;transition:width .4s;min-width:2px}
+.row .val{font:600 12px/1 var(--mono);text-align:right}
+.win{font-size:11px;color:var(--ok);font-weight:600}
+table{width:100%;border-collapse:collapse;font:12px/1.7 var(--mono);margin-top:4px}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left;color:var(--dim)}
+th{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+tr:hover td{background:var(--panel-2)}
+.tag{display:inline-block;font:11px/1 var(--mono);padding:4px 8px;border-radius:999px;border:1px solid var(--line)}
+.note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;padding:14px 16px;font-size:13px;margin:12px 0}
+.note b{display:block;margin-bottom:6px}
+.note ul{margin:6px 0 0;padding-left:18px}
+.note li{margin:4px 0}
+button{font:12px/1 inherit;padding:7px 12px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--line);background:var(--panel);color:var(--txt)}
+.scroll{overflow-x:auto}
+@media(max-width:600px){.row{grid-template-columns:62px 1fr 84px}h1{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Go vs Python</h1>
+  <span class="tag">plataforma de webhooks</span>
+  <span style="flex:1"></span>
+  <button onclick="tg()">tema</button>
+</header>
+<div class="sub" id="sub"></div>
+<div id="app"></div>
+
+<h2>Como ler estes números</h2>
+<div class="note">
+  <b>O que foi mantido igual nos dois lados</b>
+  <ul>
+    <li>Mesmo contrato HTTP, mesmas regras de validação, idempotência, retry e rate limit.</li>
+    <li>Mesmo gerador de carga (<code>cmd/loadgen</code>) e mesmo provedor simulado (<code>cmd/provider</code>).</li>
+    <li>Mesma máquina, mesmo payload, mesma duração, mesma concorrência, mesmo aquecimento.</li>
+    <li>Python usa <code>asyncio</code> + <code>aiohttp</code>, não código síncrono — comparar Python bloqueante com Go concorrente não seria comparação.</li>
+  </ul>
+</div>
+<div class="note" style="border-left-color:var(--bad)">
+  <b>Limitações — leia antes de concluir qualquer coisa</b>
+  <ul>
+    <li>Uma execução isolada não é resultado. Rode várias vezes e observe a variação antes de afirmar algo.</li>
+    <li>Windows + OneDrive + antivírus introduzem ruído. Um servidor Linux ocioso dá números bem mais estáveis.</li>
+    <li>Este cenário é <b>I/O-bound</b>: o trabalho real é esperar a rede. É onde o Python assíncrono compete melhor. Cenários CPU-bound teriam outro desfecho.</li>
+    <li>Python roda em um único processo. Em produção usaria-se múltiplos workers (um por núcleo), o que muda a foto de vazão — mas também a de memória.</li>
+    <li>O gargalo pode ser o gerador de carga ou o provedor simulado, não o servidor. Se os dois lados baterem no mesmo teto, é sinal disso.</li>
+  </ul>
+</div>
+</div>
+
+<script id="data" type="application/json">/*__DATA__*/null</script>
+<script>
+const R = JSON.parse(document.getElementById('data').textContent) || [];
+const color = l => /py/i.test(l) ? 'var(--py)' : /go/i.test(l) ? 'var(--go)' : 'var(--accent)';
+const n0 = v => v==null?'—':Math.round(v).toLocaleString('pt-BR');
+const n2 = v => v==null?'—':v.toFixed(2);
+const n1 = v => v==null?'—':v.toFixed(1);
+const mb = b => b==null?'—':(b/1048576).toFixed(1);
+
+function bars(title, hint, items, fmt, lowerBetter){
+  const vals = items.map(i=>i.v).filter(v=>v!=null && isFinite(v));
+  if(!vals.length) return '';
+  const max = Math.max(...vals) || 1;
+  const best = lowerBetter ? Math.min(...vals) : Math.max(...vals);
+  let h = `<div class="metric"><div class="name">${title}</div><div class="hint">${hint}</div>`;
+  for(const it of items){
+    const v = it.v, w = v==null?0:Math.max(2,(v/max)*100);
+    const isBest = v!=null && v===best && items.length>1;
+    h += `<div class="row"><div class="lbl">${it.label}</div>`
+      + `<div class="track"><div class="fill" style="width:${w}%;background:${color(it.label)}"></div></div>`
+      + `<div class="val">${fmt(v)} ${isBest?'<span class="win">&#9733;</span>':''}</div></div>`;
+  }
+  return h+'</div>';
+}
+
+function envCard(r){
+  const e = r.env||{};
+  return `<div class="card"><div class="env">
+    <div><span>máquina</span><b>${e.host||'—'}</b></div>
+    <div><span>SO / arq</span><b>${e.os||'—'} ${e.arch||''}</b></div>
+    <div><span>núcleos</span><b>${e.num_cpu||'—'}</b></div>
+    <div><span>gerador</span><b>${e.go_version||'—'}</b></div>
+    <div><span>quando</span><b>${e.when?new Date(e.when).toLocaleString('pt-BR'):'—'}</b></div>
+  </div></div>`;
+}
+
+function table(group){
+  const cols = group.map(r=>r.label);
+  const rows = [
+    ['aceitos req/s',        r=>n0(r.accepted_rps)],
+    ['tentados req/s',       r=>n0(r.attempted_rps)],
+    ['entregues fim a fim/s',r=>n0(r.delivery_rps)],
+    ['total entregue',       r=>n0(r.delivered_total)],
+    ['API p50 (ms)',         r=>n2(r.client_latency_ms?.p50_ms)],
+    ['API p95 (ms)',         r=>n2(r.client_latency_ms?.p95_ms)],
+    ['API p99 (ms)',         r=>n2(r.client_latency_ms?.p99_ms)],
+    ['API max (ms)',         r=>n2(r.client_latency_ms?.max_ms)],
+    ['entrega p99 (ms)',     r=>n1(r.server?.delivery_latency_ms?.p99_ms)],
+    ['503 fila cheia',       r=>n0(r.server?.rejected_full)],
+    ['duplicados barrados',  r=>n0(r.server?.duplicated)],
+    ['retentativas',         r=>n0(r.server?.retries)],
+    ['dead-letter',          r=>n0(r.server?.dead_lettered)],
+    ['dreno (s)',            r=>n1(r.drain_seconds)],
+    ['RSS pico (MB)',        r=>mb(r.process?.peak_rss_bytes)],
+    ['CPU (s)',              r=>n1(r.process?.cpu_seconds)],
+    ['CPU (% de 1 núcleo)',  r=>n0(r.process?.cpu_percent_of_one_core)],
+    ['entregues / CPU-s',    r=>{const c=r.process?.cpu_seconds;return c?n0(r.delivered_total/c):'—'}],
+    ['heap do runtime (MB)', r=>mb(r.server?.runtime?.heap_alloc_bytes)],
+    ['goroutines / tasks',   r=>n0(r.server?.runtime?.goroutines)],
+    ['erros de transporte',  r=>n0(r.transport_errors)],
+  ];
+  let h = '<div class="card scroll"><table><tr><th>métrica</th>'
+        + cols.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+  for(const [name,fn] of rows){
+    h += `<tr><td>${name}</td>` + group.map(r=>`<td>${fn(r)}</td>`).join('') + '</tr>';
+  }
+  return h+'</table></div>';
+}
+
+function render(){
+  if(!R.length){ document.getElementById('app').innerHTML =
+    '<div class="card">Nenhum resultado. Rode <code>bench/compare.ps1</code> primeiro.</div>'; return; }
+
+  document.getElementById('sub').textContent =
+    `${R.length} execução(ões) · gerado em ${new Date().toLocaleString('pt-BR')}`;
+
+  const scen = [...new Set(R.map(r=>r.scenario||'default'))];
+  let h = envCard(R[0]);
+
+  for(const s of scen){
+    const g = R.filter(r=>(r.scenario||'default')===s);
+    const p = g[0];
+    h += `<h2>Cenário: ${s}</h2>`;
+    h += `<div class="sub">${n0(p.duration_seconds)}s · concorrência ${p.concurrency} · `
+       + `${p.target_rate>0?n0(p.target_rate)+' req/s alvo (malha aberta)':'malha fechada (vazão máxima)'}</div>`;
+    h += '<div class="card">';
+    h += '<h3>Vazão — maior é melhor</h3>';
+    h += bars('Eventos aceitos por segundo','Capacidade de ingestão da API.',
+        g.map(r=>({label:r.label,v:r.accepted_rps})), n0, false);
+    h += bars('Webhooks entregues por segundo','Trabalho realmente concluído, incluindo o tempo de drenar a fila.',
+        g.map(r=>({label:r.label,v:r.delivery_rps})), n0, false);
+    h += '<h3>Latência — menor é melhor</h3>';
+    h += bars('API p99 (ms)','A cauda. É ela que o cliente sente, não a média.',
+        g.map(r=>({label:r.label,v:r.client_latency_ms?.p99_ms})), n2, true);
+    h += bars('API p50 (ms)','O caso típico.',
+        g.map(r=>({label:r.label,v:r.client_latency_ms?.p50_ms})), n2, true);
+    h += '<h3>Custo de recursos — menor é melhor</h3>';
+    h += bars('Memória residente de pico (MB)','Medida de fora do processo, mesma unidade para as duas.',
+        g.map(r=>({label:r.label,v:r.process?.peak_rss_bytes?r.process.peak_rss_bytes/1048576:null})), n1, true);
+    h += bars('CPU consumida (segundos)','Tempo total de CPU para o mesmo trabalho.',
+        g.map(r=>({label:r.label,v:r.process?.cpu_seconds})), n1, true);
+    h += bars('Eventos entregues por segundo de CPU','Eficiência: quanto trabalho por unidade de processador. Maior é melhor.',
+        g.map(r=>({label:r.label,v:r.process?.cpu_seconds?r.delivered_total/r.process.cpu_seconds:null})), n0, false);
+    h += '</div>';
+    h += table(g);
+  }
+  document.getElementById('app').innerHTML = h;
+}
+
+function tg(){
+  const c = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', c==='light'?'dark':'light');
+}
+render();
+</script>
+</body>
+</html>
